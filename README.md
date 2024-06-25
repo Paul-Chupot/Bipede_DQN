@@ -51,6 +51,6 @@ The DQN agent managed to walk approximately, particularly around episodes 2100-2
 
 ## Usage
 
-### Training
+### Training and validation
 
-To train the DQN agent, run the following command:
+To train or evaluate the DQN agent, run the following command: python main.py
