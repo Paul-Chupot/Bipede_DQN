@@ -11,27 +11,45 @@ from time import time
 from gym.utils.save_video import save_video
 from collections import deque
 
+# Hyperparameters
 episodes = 3000
 max_steps = 700
 batch_size = 32
 buffer_size = 100000
-
-
 learning_rate = 1e-03
 starting_exp_rate = 1.
 min_exp_rate = .05
 gamma = .99
 sync_every = 1000
-
 render_every = 50
 
 device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 
 class Buffer:
+    '''
+    Buffer class to save and sample agent exploration for training
+    '''
     def __init__(self, buffer_size):
+        """
+        Initialize the buffer with a maximum size.
+
+        Args:
+            buffer_size (int): Maximum size of the buffer.
+        """
         self.memory = deque(maxlen=buffer_size)
 
+
     def save(self, state, action, next_state, reward, done):
+        """
+        Save a transition (state, action, next_state, reward, done) in the buffer.
+
+        Args:
+            state (array): Current state.
+            action (array): Action taken.
+            next_state (array): Next state.
+            reward (float): Reward received.
+            done (bool): Whether the episode has ended.
+        """
 
         state = torch.tensor(state, dtype=torch.float32).to(device)
         action = torch.tensor(action, dtype=torch.int64).to(device)
@@ -41,7 +59,17 @@ class Buffer:
 
         self.memory.append((state, action, next_state, reward, done))
 
+
     def sample(self, batch_size):
+        """
+        Sample a batch of transitions from the buffer.
+
+        Args:
+            batch_size (int): Size of the batch to sample.
+
+        Returns:
+            tuple of tensors: Batch of states, actions, next_states, rewards, and dones.
+        """
         batch = random.sample(self.memory, batch_size)
         states, actions, next_states, rewards, dones = zip(*batch)
 
@@ -54,19 +82,44 @@ class Buffer:
         return states, actions, next_states, rewards, dones
 
     def clear(self):
+        """
+        Clear the buffer.
+        """
         self.memory.clear()
+
 
 buffer = Buffer(buffer_size)
 
 
 class DQN(nn.Module):
+    '''
+    DQN model with a reshaped output to discretize the action space
+    with for each articulation either max speed in a direction or the other or neutral
+    '''
+
     def __init__(self, n_observation, n_actions):
+        """
+        Initialize the DQN model.
+
+        Args:
+            n_observation (int): Number of observations.
+            n_actions (int): Number of actions.
+        """
         super().__init__()
         self.layer1 = nn.Linear(n_observation,48)
         self.layer2 = nn.Linear(48,64)
         self.layer3 = nn.Linear(64,n_actions)
 
     def forward(self, states):
+        """
+        Forward pass of the DQN model.
+
+        Args:
+            states (torch.Tensor): Input states.
+
+        Returns:
+            torch.Tensor: Output Q-values.
+        """
         x = F.relu(self.layer1(states))
         x = F.relu(self.layer2(x))
         x = self.layer3(x)
@@ -74,7 +127,18 @@ class DQN(nn.Module):
 
 
 class DQNAgent:
+    '''
+    DQN Agent class
+    '''
     def __init__(self, n_observation, n_actions):
+        """
+        Initialize the DQN agent with value network, target network, and parameters.
+
+        Args:
+            n_observation (int): Number of observations.
+            n_actions (int): Number of actions.
+        """
+
         self.net = DQN(n_observation, n_actions).to(device)
         self.opt = torch.optim.Adam(params=self.net.parameters(), lr=learning_rate)
         self.target = DQN(n_observation, n_actions).to(device)
@@ -91,9 +155,18 @@ class DQNAgent:
 
         self.batch_size = batch_size
 
-
     @torch.no_grad()
     def act(self, state, validation_mode=False):
+        """
+        Select an action based on the current state using an epsilon-greedy policy.
+
+        Args:
+            state (array): Current state.
+            validation_mode (bool): Whether to use validation mode.
+
+        Returns:
+            array: Selected action.
+        """
 
         self.total_steps += 1
 
@@ -113,6 +186,16 @@ class DQNAgent:
         return action
 
     def optimize(self, states, actions, next_states, rewards, dones):
+        """
+        Optimize the DQN using a batch of transitions.
+
+        Args:
+            states (torch.Tensor): Batch of states.
+            actions (torch.Tensor): Batch of actions.
+            next_states (torch.Tensor): Batch of next states.
+            rewards (torch.Tensor): Batch of rewards.
+            dones (torch.Tensor): Batch of done flags.
+        """
 
         current_values = self.net(states).gather(1,actions.unsqueeze(1)).squeeze(1)
 
@@ -130,12 +213,23 @@ class DQNAgent:
         torch.nn.utils.clip_grad_value_(self.net.parameters(), 100)
         self.opt.step()
 
-        # print('Weights updated (✿◡‿◡)', '\n')
-
     def save(self, reward, episode):
+        """
+        Save the current model.
+
+        Args:
+            reward (float): Reward achieved.
+            episode (int): Current episode.
+        """
         torch.save(self.net.state_dict(), f"agents/saved_model_{round(reward)}_episode_{episode}.pt")
 
     def load(self, path):
+        """
+        Load a model from a file.
+
+        Args:
+            path (str): Path to the model file.
+        """
         data = torch.load(path, map_location=device)
         self.net.load_state_dict(data)
 
@@ -143,6 +237,7 @@ class DQNAgent:
 if __name__=='__main__':
 
     choice = 0
+
     while choice not in [1,2]:
         choice = int(input("Choose between : 1. Training  2. Load and evaluate"))
 
@@ -241,10 +336,8 @@ if __name__=='__main__':
         state, _ = env.reset()
 
         ep_rwds = []
-        ep_heights = []
-        ep_velocities = []
-
         actions = []
+
         for step in range(max_steps +900):
 
             action = agent.act(state, validation_mode = True)
