@@ -1,0 +1,1 @@
+Experiment to adapt a DQN Agent to make it learn to walk in the bipedal walker environment from gym openai (breaking down the continuous action space into a dicrete one). It managed to walk approximately especially around episodes 2100-2500. Some agents are available in the agents directory.
