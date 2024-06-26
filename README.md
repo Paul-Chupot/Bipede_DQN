@@ -1,6 +1,6 @@
 # DQN Agent for Bipedal Walker
 
-This project aims to adapt a Deep Q-Network (DQN) agent to learn to walk in the Bipedal Walker environment from OpenAI Gym. The continuous action space of the environment is discretized to facilitate the learning process using DQN.
+This project aims to adapt a Deep Q-Network (DQN) agent to learn to walk in the Bipedal Walker environment from OpenAI Gym. The continuous action space of the environment is discretized to allow the learning process using DQN.
 
 ## Overview
 
