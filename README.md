@@ -49,6 +49,8 @@ The DQN model consists of:
 
 The DQN agent managed to walk approximately, particularly around episodes 2100-2500. Pre-trained agents are available in the `agents` directory for evaluation.
 
+![DQN Agent Walking](https://github.com/Paul-Chupot/Bipede_DQN/blob/main/assets/rl-video-episode-2400.gif)
+
 ## Usage
 
 ### Training and validation
